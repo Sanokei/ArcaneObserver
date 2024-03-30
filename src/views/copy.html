@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Arcane Observer</title>
+
+    <!-- metadata -->
+
+    <!-- fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital@0;1&family=Playfair+Display+SC:wght@900&family=Playfair+Display:ital,wght@0,800;1,800&family=Manrope:wght@800&display=swap" rel="stylesheet">
+
+    <!-- static -->
+    <link rel="stylesheet" href="../public/style.css">
+    <script src="../public/script.js" defer></script>
+</head>
+<body>
+    <div class="main__wrapper">
+        <main>
+            <h1>The Arcane Observer</h1>
+            <aside>
+                <div>
+                    <div class="issue">Issue #0</div>
+                    <div class="date">{{ date }}</div>
+                    <div class="edition">Non-woven web edition</div>
+                </div>
+            </aside>
+            <h2 class="title--large main-title">{{ firststory.title }}</h2>
+            <div class="main-text multi-column">
+                {{ firststory.article }}
+            </div>
+            <a class="firststory_image" href="{{ firststory.link }}" target="_blank">
+                <figure>
+                    <img src="{{ firststory.image }}" />
+                    <figcaption>{{ firststory.caption }}</figcaption>
+                </figure>
+            </a>
+            <a class="item-with-image secondstory span--2 long--2" href="{{ secondstory.link }}" target="_blank">
+                <img src="{{ secondstory.image }}"/>
+                <h4>{{ secondstory.title }}</h4>
+                <div class="multi-column">
+                    <p>{{ secondstory.article }}</p>
+                </div>
+            </a>
+            <a class="firstadvert" href="" target="_blank">
+                <div class="firstadvert__title"></div>
+                <div class="firstadvert__image"> 
+                    <span>Advert for witches brew!</span>
+                    <img src="" />
+                </div>
+            </a>
+            <a class="item-with-image firstsubstory with-border" href="{{ firstsubstory.link }}" target="_blank">
+                <h4>{{ firstsubstory.title }}</h4>
+                <p>{{ firstsubstory.article }}</p>
+            </a>
+            <a class="item-with-image secondsubstory with-border" href="{{ secondsubstory.link }}" target="_blank">
+                <h4>{{ secondsubstory.title }}</h4>
+                <p>{{ secondsubstory.article }}</p>
+            </a>
+            <a class="item-with-image thirdsubstory" href="{{ thirdsubstory.link }}" target="_blank">
+                <h4>{{ thirdsubstory.title }}</h4>
+                <p>{{ thirdsubstory.article }}</p>
+            </a>
+            <a class="item-with-image fourthsubstory" href="{{ fourthsubstory.link }}" target="_blank">
+                <img src="{{ fourthsubstory.image }}"/>
+                <h4>{{ fourthsubstory.title }}</h4>
+                <p>{{ fourthsubstory.article }}</p>
+            </a>
+            <a class="firstimage" href="" target="_blank">
+                <figure>
+                    <img src="" />
+                    <figcaption>Wow look at all that AD space</figcaption>
+                </figure>
+            </a>
+            <a class="firststub" href="" tagrget="_blank">
+                <img class="firststub__image" src=""/>
+                <div class="firststub__subtitle">
+                    Ad here?
+                </div>
+                <div class="firststub__content">
+                    Sorry but its another advert
+                </div>
+            </a>
+            <div class="item-with-image thirdstory">
+                <a class="thirdstory__image" href="{{ thirdstory.link }}" target="_blank">
+                <img src="{{ thirdstory.image }}"/>
+                </a>
+                <div class="thirdstory__content">
+                    <h4>{{ thirdstory.title }}</h4>
+                    <div class="multi-column-3">
+                        <p>{{ thirdstory.article }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="sidebar">
+                <h3 class="title--big">This week in Wizard City</h3>
+                <a class="secondstub" href="" target="_blank">
+                    <img class="secondstub__image" src=""/>
+                    <div class="secondstub__subtitle">Advert</div>
+                    <div class="secondstub__content">
+                        <h4>Wow another ad!?</h4>
+                        <p>Cannot believe that</p>
+                    </div>
+                </a>
+                <a class="sidebar-item fifthsubstory" href="{{ fifthsubstory.link }}" target="_blank">
+                    <h5>{{ fifthsubstory.title }}</h5>
+                    <p>{{ fifthsubstory.article }}</p>
+                </a>
+                <a class="sidebar-item sixthsubstory with-border" href="{{ sixthsubstory.link }}" target="_blank">
+                    <h5>{{ sixthsubstory.title }}</h5>
+                    <p>{{ sixthsubstory.article }}</p>
+                </a>
+                <a class="secondadvert" href="" target="_blank">
+                    <div class="secondadvert__image">
+                        <img src=""/>
+                    </div>
+                    <div class="secondadvert__blurb">Use your imagination! Free!!!</div>
+                    <div class="secondadvert__title">Imagine an advert here!</div>
+                </a>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

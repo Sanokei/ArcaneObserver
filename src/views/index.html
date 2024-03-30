@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔮The Arcane Observer</title>
+    <link rel="icon" href="../public/img/icon.png">
+    <!-- Crystal ball icon created by Konkapp @ Flaticon-->
+    <!-- metadata -->
+
+    <!-- fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital@0;1&family=Playfair+Display+SC:wght@900&family=Playfair+Display:ital,wght@0,800;1,800&family=Manrope:wght@800&display=swap" rel="stylesheet">
+    <!-- plugins -->
+    <!-- static -->
+    <link rel="stylesheet" href="../public/style.css">
+    <script src="../public/script.js" defer></script>
+</head>
+<body>
+    <div class="main__wrapper">
+        <main>
+            <h1>The Arcane Observer</h1>
+            <aside>
+                <div>
+                    <div class="issue">Issue #{{ issue }}</div>
+                    <div class="date">{{ date }}</div>
+                    <div class="edition">Non-woven web edition</div>
+                </div>
+            </aside>
+            <h2 class="title--large main-title">{{ firststory.title }}</h2>
+            <div class="main-text multi-column">
+                <p class="first-letter-p">{{ firststory.article }}</p>
+            </div>
+            <a class="firststory_image" href="{{ firststory.link }}" target="_blank">
+                <figure>
+                    <img src="{{ firststory.image }}" class="smartcrop"/>
+                    <figcaption>{{ firststory.caption }}</figcaption>
+                </figure>
+            </a>
+            <a class="article item-with-image secondstory span--2 long--1" href="{{ secondstory.link }}" target="_blank">
+                <img src="{{ secondstory.image }}" class="smartcrop"/>
+                <h4>{{ secondstory.title }}</h4>
+                <div class="multi-column">
+                    <div class="leftwave1 shape-outside"></div>
+                    <div class="rightwave shape-outside"></div>
+                    <div class="text">{{ secondstory.article }}</div>
+                </div>
+            </a>
+            <a class="firstadvert" href="" target="_blank">
+                <div class="firstadvert__title"></div>
+                <div class="firstadvert__image"> 
+                    <span>Advert for witches brew!</span>
+                    <img src="" />
+                </div>
+            </a>
+            <a class="article item-with-image firstsubstory" href="{{ firstsubstory.link }}" target="_blank">
+                <h4>{{ firstsubstory.title }}</h4>
+                <div class="leftwave shape-outside"></div>
+                <div class="rightwave shape-outside"></div>
+                <div class="text">{{ firstsubstory.article }}</div>
+            </a>
+            <a class="article item-with-image secondsubstory" href="{{ secondsubstory.link }}" target="_blank">
+                <h4>{{ secondsubstory.title }}</h4>
+                <div class="leftwave shape-outside"></div>
+                <div class="rightwave shape-outside"></div>
+                <div class="text">{{ secondsubstory.article }}</div>
+            </a>
+            <a class="article item-with-image thirdsubstory" href="{{ thirdsubstory.link }}" target="_blank">
+                <h4>{{ thirdsubstory.title }}</h4>
+                <div class="leftpyramid shape-outside"></div>
+                <div class="rightpyramid shape-outside"></div>
+                <div class="text">{{ thirdsubstory.article }}</div>
+            </a>
+            <a class="article item-with-image fourthsubstory with-border" href="{{ fourthsubstory.link }}" target="_blank">
+                <img src="{{ fourthsubstory.image }}"/>
+                <h4>{{ fourthsubstory.title }}</h4>
+                <div class="leftwave1 shape-outside"></div>
+                <div class="rightwave1 shape-outside"></div>
+                <div class="text">{{ fourthsubstory.article }}</div>
+            </a>
+            <a class="article item-with-image eighthsubstory with-border" href="{{ eighthsubstory.link }}" target="_blank">
+                <img src="{{ eighthsubstory.image }}"/>
+                <h4>{{ eighthsubstory.title }}</h4>
+                <div class="leftwave shape-outside"></div>
+                <div class="rightwave1 shape-outside"></div>
+                <div class="text">{{ eighthsubstory.article }}</div>
+            </a>
+            <a class="firstimage" href="" target="_blank">
+                <figure>
+                    <img src="" />
+                    <figcaption>Wow look at all that AD space</figcaption>
+                </figure>
+            </a>
+            <a class="firststub" href="https://www.sidewaysturtle.com/" tagrget="_blank">
+                <img class="firststub__image" src="../public/img/turtle.png"/>
+                <div class="firststub__subtitle">
+                    Hire our coven
+                </div>
+                <div class="firststub__content">
+                    Need wizards for upcoming magic? We will conjure spells for you!
+                </div>
+            </a>
+            <div class="item-with-image thirdstory">
+                <a class="thirdstory__image" href="{{ thirdstory.link }}" target="_blank">
+                <img src="{{ thirdstory.image }}" class="smartcrop"/>
+                </a>
+                <div class="thirdstory__content">
+                    <h4>{{ thirdstory.title }}</h4>
+                    <div class="multi-column-3">
+                        <p>{{ thirdstory.article }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="sidebar">
+                <h3 class="title--big">This week in Global Wizard News</h3>
+                <a class="secondstub" href="https://sano.preview.teespring.com/" target="_blank">
+                    <img class="secondstub__image" src="../public/img/merch.png"/>
+                    <div class="secondstub__subtitle">Merchandise</div>
+                    <div class="secondstub__content">
+                        <h4>Support the Wizard Textile Industry</h4>
+                        <p>The First Arcane Observer Merch Collection: Title 1</p>
+                    </div>
+                </a>
+                <a class="article sidebar-item fifthsubstory" href="{{ fifthsubstory.link }}" target="_blank">
+                    <h5>{{ fifthsubstory.title }}</h5>
+                    <div class="leftwave shape-outside"></div>
+                    <div class="rightwave shape-outside"></div>
+                    <div class="text">{{ fifthsubstory.article }}</div>
+                </a>
+                <a class="sidebar-item sixthsubstory with-border" href="{{ sixthsubstory.link }}" target="_blank">
+                    <h5>{{ sixthsubstory.title }}</h5>
+                    <p>{{ sixthsubstory.article }}</p>
+                </a>
+                <a class="firstimage" href="" target="_blank">
+                    <div class="secondadvert__image">
+                        <img src=""/>
+                    </div>
+                </a>
+                <a class="sidebar-item seventhsubstory with-border" href="{{ seventhsubstory.link }}" target="_blank">
+                    <img src="{{ seventhsubstory.image }}" class="smartcrop"/>
+                    <h5>{{ seventhsubstory.title }}</h5>
+                    <p>{{ seventhsubstory.article }}</p>
+                </a>
+            </div>
+        </main>
+    </div>
+</body>
+</html>
