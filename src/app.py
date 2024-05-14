@@ -15,6 +15,7 @@ import os
 from datetime import datetime
 
 from json_repair import repair_json
+import json_repair
 
 import re
 
@@ -55,7 +56,7 @@ def build_AIprompt_json():
     response = requests.get(url, headers=headers)
     html_content = response.content
     soup = BeautifulSoup(html_content, 'html.parser')
-    article_links = [a_tag.get('href') for link in soup.find_all('bsp-custom-headline')[6:19] if (a_tag := link.find('a', class_="Link")) and a_tag.get('href')]
+    article_links = [a_tag.get('href') for link in soup.find('main').find_all('bsp-custom-headline')[:13]if (a_tag := link.find('a', class_="Link")) and a_tag.get('href')]
     articles = []
     # Download and parse the articles
     for link in article_links:
@@ -86,7 +87,6 @@ def build_AIprompt_json():
 def build_website_json(articles, newsprompt1, newsprompt2):
     AIJson = get_stories_from_scraped(newsprompt1, newsprompt2)
     AIStories = json_repair.loads(AIJson)
-    
     # Fill in the second dictionary
     Articles = {
         "date": datetime.today().strftime('%m/%d/%Y'),
@@ -159,10 +159,11 @@ def update_paper_db():
     try:
         article,prompt1,prompt2 = build_AIprompt_json()
         websitejson = build_website_json(article,prompt1,prompt2)
-        with open('/public/site.json', 'w', encoding ='utf8') as site_file: 
+        with open('C:/Users/wkeif/Desktop/ArcaneObserver/src/public/site.json', 'w', encoding ='utf8') as site_file: 
             json.dump(websitejson, site_file, ensure_ascii = False)
         return True
     except Exception as e:
+        print(e)
         return False
     
 
@@ -176,7 +177,7 @@ def update_paper():
         return jsonify({'error': 'Missing API key'}), 401
 
     api_key = request.headers['X-API-Key']
-
+    
     if api_key != os.environ.get('NEW_STORY_KEY'):
         return jsonify({'error': 'Invalid API key'}), 401
 
@@ -192,7 +193,7 @@ def update_paper():
 
 @app.route('/', methods=['GET'])
 def index():
-    with open('/public/site.json', 'r', encoding ='utf8') as site_file: 
+    with open('C:/Users/wkeif/Desktop/ArcaneObserver/src/public/site.json', 'r', encoding ='utf8') as site_file: 
         articles = json.load(site_file)
     return render_template('index.html',issue = int((datetime.now() - datetime(1970, 1, 1)).total_seconds()),date=articles["date"],firststory=articles["firststory"],secondstory=articles["secondstory"],thirdstory=articles["thirdstory"],firstsubstory=articles["firstsubstory"],secondsubstory=articles["secondsubstory"],thirdsubstory=articles["thirdsubstory"],fourthsubstory=articles["fourthsubstory"],fifthsubstory=articles["fifthsubstory"],sixthsubstory=articles["sixthsubstory"],seventhsubstory=articles["seventhsubstory"],eighthsubstory=articles["eighthsubstory"])
 
