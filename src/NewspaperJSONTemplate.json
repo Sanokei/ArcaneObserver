@@ -13,49 +13,63 @@
         "link":"",
         "image":"",
         "title":"",
-        "article":""
+        "article":"",
+        "caption":""
     },
     "thirdstory":
     {
         "link":"",
         "image":"",
         "title":"",
-        "article":""
+        "article":"",
+        "caption":""
     },
     "firstsubstory":
     {
         "link":"",
         "title":"",
-        "article":""
+        "article":"",
+        "caption":"",
+        "image":""
     },
     "secondsubstory":
     {
         "link":"",
         "title":"",
-        "article":""
+        "article":"",
+        "caption":"",
+        "image":""
     },
     "thirdsubstory":
     {
         "link":"",
         "title":"",
-        "article":""
+        "article":"",
+        "caption":"",
+        "image":""
     },
     "fourthsubstory":
     {
         "link":"",
         "title":"",
-        "article":""
+        "article":"",
+        "caption":"",
+        "image":""
     },
     "fifthsubstory":
     {
         "link":"",
         "title":"",
-        "article":""
+        "article":"",
+        "caption":"",
+        "image":""
     },
     "sixthsubstory":
     {
         "link":"",
         "title":"",
-        "article":""
+        "article":"",
+        "caption":"",
+        "image":""
     }
 }

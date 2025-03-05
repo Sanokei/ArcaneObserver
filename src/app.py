@@ -1,206 +1,419 @@
 #!/usr/bin/python3.10
 # -*- coding: utf-8 -*-
 
-from flask import Flask
-from flask import abort, render_template, request, jsonify, redirect, url_for, send_file, session
-
-from newspaper import Article, build
-import anthropic
+from flask import Flask, render_template, request, jsonify, Response
+from io import BytesIO
+from newspaper import Article
 from bs4 import BeautifulSoup
-import pandas as pd
+import anthropic
 import requests
-
 import json
 import os
 from datetime import datetime
+from pathlib import Path
+import logging
 
-from json_repair import repair_json
-import json_repair
-
-import re
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__, static_folder='public', template_folder='views')
+app.secret_key = os.environ.get('SECRET', 'fallback-dev-secret-key')
 
-app.secret_key = os.environ.get('SECRET')
+# Constants
+BASE_DIR = Path(__file__).resolve().parent
+SITE_JSON_PATH = BASE_DIR / "public" / "site.json"
+NEWS_SOURCE_URL = 'https://apnews.com/oddities'
+API_KEY = os.environ.get('NEW_STORY_KEY', 'dev-key')
 
-def get_stories_from_scraped(newsprompt1, newsprompt2): # [string,int]
-    client = anthropic.Anthropic() # defaults to os.environ.get("ANTHROPIC_API_KEY")
-    prompt = "For every user prompt, generate the following JSON format with a humorous, silly, highly creative, and imaginative explanation for the real-world event, attributing the cause to bizarre and unrelated wizard/witch activities, magical mishaps, fantastical creatures, and or any other fantasy based mage activies. The explanation should be an absurd, unintended consequence of wizard actions or magical phenomena that are entirely disconnected from the original context. Emphasize that wizards operate in a completelt separate reality from the mortal world, and their activities inadvertently affect mortal affairs in a comical, roundabout manner without any direct involvement or malicious intent. Ensure that the people in the stories are never portrayed as wizards themselves, but rather as ordinary individuals caught up in the ludicrous, tangential effects of the magical world's shenanigans. The explanations should be lighthearted, silly, and avoid any implications of wizards instigating serious real-world conflicts or controversies. Replace all words from the user prompt with new words that fit the new narrative. Articles must be at least 100 words. Create creative titles with clickbait and wizard intentions. Use backslashes (\\) before ANY double quotes (\") only double quotes within the JSON values. EVEN WHEN QUOTING SOMETHING FROM THE ARTICLE. No backslashes are needed before single quotes. CAPTIONS MUST BE 10 WORDS OR LESS. THE GENERATED JSON FORMAT MUST BE VALID AND LOADABLE. NO INVALID CHARACTERS OR WHITESPACES WITHIN THE JSON. ONLY RETURN THE JSON FORMAT."
-    storyformater1="{\"firststory\":{\"title\":\"\",\"article\":\"\",\"caption\":\"\"},\"secondstory\":{\"title\":\"\",\"article\":\"\"},\"thirdstory\":{\"title\":\"\",\"article\":\"\"},\"firstsubstory\":{\"title\":\"\",\"article\":\"\"},\"secondsubstory\":{\"title\":\"\",\"article\":\"\"},\"thirdsubstory\":{\"title\":\"\",\"article\":\"\"}}"
-    storyformater2="{\"fourthsubstory\":{\"title\":\"\",\"article\":\"\"},\"fifthsubstory\":{\"title\":\"\",\"article\":\"\"},\"sixthsubstory\":{\"title\":\"\",\"article\":\"\"},\"seventhsubstory\":{\"title\":\"\",\"article\":\"\"},\"eighthsubstory\":{\"title\":\"\",\"article\":\"\"}}"
-    newsprompt = [newsprompt1,newsprompt2]
-    storyformater = [storyformater1,storyformater2]
-    messages = ["",""]
-    for i in range(2):
-        messages[i] = client.messages.create(
-            model="claude-3-haiku-20240307",
-            max_tokens=4096,
-            temperature=0.37,
-            system=f"{prompt}\n\n{storyformater[i]}",
-            messages=[
-                {
-                    "role": "user",
-                    "content": newsprompt[i]
-                }
-            ]
-        ).content[0].text
-    print(messages[0][:-1] + "," + messages[1][1:])
-    return (messages[0][:-1] + "," + messages[1][1:])
+@app.route('/proxy-image', methods=['GET'])
+def proxy_image():
+    """
+    Proxy for external images to avoid CORS issues with SmartCrop.js
+    @author SanoKei
+    """
+    try:
+        # Get the image URL from the query parameter
+        image_url = request.args.get('url')
+        
+        if not image_url:
+            return "Missing 'url' parameter", 400
+            
+        # Log the request (optional)
+        logger.info(f"Proxying image: {image_url}")
+        
+        # Set up headers to appear as a browser request
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
+        }
+        
+        # Request the image
+        response = requests.get(image_url, headers=headers, stream=True)
+        response.raise_for_status()  # Raise exception for 4XX/5XX responses
+        
+        # Create a Flask Response with the same content and content type
+        proxied_response = Response(
+            response=BytesIO(response.content).read(),
+            status=response.status_code
+        )
+        
+        # Copy the content type
+        if 'Content-Type' in response.headers:
+            proxied_response.headers['Content-Type'] = response.headers['Content-Type']
+        else:
+            # Default to image/jpeg if no content type provided
+            proxied_response.headers['Content-Type'] = 'image/jpeg'
+        
+        # Set CORS headers to allow access from any origin
+        proxied_response.headers['Access-Control-Allow-Origin'] = '*'
+        
+        # Set caching headers (optional)
+        proxied_response.headers['Cache-Control'] = 'public, max-age=86400'  # Cache for 1 day
+        
+        return proxied_response
+        
+    except Exception as e:
+        logger.error(f"Image proxy error: {str(e)}")
+        return f"Error proxying image: {str(e)}", 500
 
-def build_AIprompt_json():
-    # Build the newspaper source
-    url = 'https://apnews.com/oddities'
+def fetch_news_articles(num_articles=13):
+    """Fetch news articles from the source URL."""
+    logger.info(f"Fetching articles from {NEWS_SOURCE_URL}")
+    
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
     }
-    response = requests.get(url, headers=headers)
-    html_content = response.content
-    soup = BeautifulSoup(html_content, 'html.parser')
-    article_links = [a_tag.get('href') for link in soup.find('main').find_all('bsp-custom-headline')[:13]if (a_tag := link.find('a', class_="Link")) and a_tag.get('href')]
-    articles = []
-    # Download and parse the articles
-    for link in article_links:
-        article = Article(link)
-        article.download()
-        article.parse()
-        articles.append(article)
+    
+    try:
+        response = requests.get(NEWS_SOURCE_URL, headers=headers)
+        response.raise_for_status()  # Raise exception for 4XX/5XX responses
+        
+        soup = BeautifulSoup(response.content, 'html.parser')
+        article_links = []
+        
+        # Find article links in the main content
+        headlines = soup.find('main').find_all('bsp-custom-headline')
+        for link in headlines[:num_articles]:
+            a_tag = link.find('a', class_="Link")
+            if a_tag and a_tag.get('href'):
+                article_links.append(a_tag.get('href'))
+        
+        # Download and parse the articles
+        articles = []
+        for link in article_links:
+            try:
+                article = Article(link)
+                article.download()
+                article.parse()
+                articles.append(article)
+            except Exception as e:
+                logger.error(f"Error parsing article {link}: {e}")
+        
+        logger.info(f"Successfully fetched {len(articles)} articles")
+        return articles
+    
+    except Exception as e:
+        logger.error(f"Error fetching news articles: {e}")
+        return []
 
-    # Fill in the first dictionary
-    newsprompt1 = f""" 
-        firststory: {" ".join(articles[0].text.split("—")[1:])[:400]} 
-        secondstory: {" ".join(articles[1].text.split("—")[1:])[:400]} 
-        thirdstory: {" ".join(articles[2].text.split("—")[1:])[:400]} 
-        firstsubstory: {" ".join(articles[3].text.split("—")[1:])[:400]} 
-        secondsubstory: {" ".join(articles[4].text.split("—")[1:])[:400]} 
-        thirdsubstory: {" ".join(articles[5].text.split("—")[1:])[:400]} 
-    """
-    newsprompt2 = f""" 
-        fourthsubstory: {" ".join(articles[6].text.split("—")[1:])[:400]} 
-        fifthsubstory: {" ".join(articles[7].text.split("—")[1:])[:400]} 
-        sixthsubstory: {" ".join(articles[8].text.split("—")[1:])[:400]} 
-        seventhsubstory: {" ".join(articles[10].text.split("—")[1:])[:400]} 
-        eighthsubstory: {" ".join(articles[11].text.split("—")[1:])[:400]} 
-    """
+def prepare_article_summaries(articles):
+    """Prepare article summaries for the AI prompt."""
+    if not articles:
+        return None
+    
+    # Create a single prompt with all articles
+    summaries = []
+    for i, article in enumerate(articles[:12]):  # Limit to first 12 articles
+        key = get_article_key(i)
+        summary = f"{key}: {article.text.split('—', 1)[1].strip() if '—' in article.text else article.text[:400]}"
+        summaries.append(summary)
+    
+    return "\n".join(summaries)
 
-    return articles, newsprompt1, newsprompt2
+def get_article_key(index):
+    """Map article index to the corresponding key in the JSON template."""
+    keys = [
+        "firststory", "secondstory", "thirdstory", 
+        "firstsubstory", "secondsubstory", "thirdsubstory",
+        "fourthsubstory", "fifthsubstory", "sixthsubstory", 
+        "seventhsubstory", "eighthsubstory"
+    ]
+    return keys[index] if index < len(keys) else f"story{index}"
 
-def build_website_json(articles, newsprompt1, newsprompt2):
-    AIJson = get_stories_from_scraped(newsprompt1, newsprompt2)
-    AIStories = json_repair.loads(AIJson)
-    # Fill in the second dictionary
-    Articles = {
-        "date": datetime.today().strftime('%m/%d/%Y'),
-        "firststory": {
-            "title": AIStories["firststory"]["title"],
-            "article": AIStories["firststory"]["article"],
-            "link": articles[0].url,
-            "image": articles[0].top_image,
-            "caption": AIStories["firststory"]["caption"]
+def generate_wizard_stories(article_summaries):
+    """Generate wizard-themed stories using Claude API."""
+    if not article_summaries:
+        return None
+    
+    logger.info("Generating wizard stories with Claude")
+    
+    # Create the system prompt
+    system_prompt = """
+    Generate a JSON object with humorous, imaginative wizard-themed explanations for real-world news events.
+    
+    Guidelines:
+    - Attribute each real-world event to bizarre wizard/witch activities or magical mishaps
+    - Make wizards operate in a separate reality that accidentally affects our world
+    - People in the stories should be ordinary humans affected by wizard shenanigans
+    - Create creative, clickbait-style titles with wizard themes
+    - Articles must be at least 100 words
+    - First story needs a caption (10 words or less)
+    - Ensure the JSON is valid with proper escaping of quotes and special characters
+    - Do not use \\n nor \\\" nor other housekeeping formating
+    
+    The response must be ONLY valid JSON matching this structure:
+    {
+        "firststory":
+        {
+            "title":"",
+            "article":"",
+            "caption":""
         },
-        "secondstory": {
-            "link": articles[1].url,
-            "image": articles[1].top_image,
-            "title": AIStories["secondstory"]["title"],
-            "article": AIStories["secondstory"]["article"]
+        "secondstory":
+        {
+            "title":"",
+            "article":""
         },
-        "thirdstory": {
-            "link": articles[2].url,
-            "image": articles[2].top_image,
-            "title": AIStories["thirdstory"]["title"],
-            "article": AIStories["thirdstory"]["article"]
+        "thirdstory":
+        {
+            "title":"",
+            "article":""
         },
-        "firstsubstory": {
-            "link": articles[3].url,
-            "title": AIStories["firstsubstory"]["title"],
-            "article": AIStories["firstsubstory"]["article"]
+        "firstsubstory":
+        {
+            "title":"",
+            "article":""
         },
-        "secondsubstory": {
-            "link": articles[4].url,
-            "title": AIStories["secondsubstory"]["title"],
-            "article": AIStories["secondsubstory"]["article"]
+        "secondsubstory":
+        {
+            "title":"",
+            "article":""
         },
-        "thirdsubstory": {
-            "link": articles[5].url,
-            "title": AIStories["thirdsubstory"]["title"],
-            "article": AIStories["thirdsubstory"]["article"]
+        "thirdsubstory":
+        {
+            "title":"",
+            "article":""
         },
-        "fourthsubstory": {
-            "link": articles[6].url,
-            "image": articles[6].top_image,
-            "title": AIStories["fourthsubstory"]["title"],
-            "article": AIStories["fourthsubstory"]["article"]
+        "fourthsubstory":
+        {
+            "title":"",
+            "article":""
         },
-        "fifthsubstory": {
-            "link": articles[7].url,
-            "title": AIStories["fifthsubstory"]["title"],
-            "article": AIStories["fifthsubstory"]["article"]
+        "fifthsubstory":
+        {
+            "title":"",
+            "article":""
         },
-        "sixthsubstory": {
-            "link": articles[8].url,
-            "title": AIStories["sixthsubstory"]["title"],
-            "article": AIStories["sixthsubstory"]["article"]
+        "sixthsubstory":
+        {
+            "title":"",
+            "article":""
         },
-        "seventhsubstory": {
-            "link": articles[10].url,
-            "image": articles[10].top_image,
-            "title": AIStories["seventhsubstory"]["title"],
-            "article": AIStories["seventhsubstory"]["article"]
+        "seventhsubstory":
+        {
+            "title":"",
+            "article":""
         },
-        "eighthsubstory": {
-            "link": articles[11].url,
-            "image": articles[11].top_image,
-            "title": AIStories["eighthsubstory"]["title"],
-            "article": AIStories["eighthsubstory"]["article"]
+        "eighthsubstory":
+        {
+            "title":"",
+            "article":""
         }
     }
-    return Articles
+    
+    Return only the JSON object with no additional text, comments, or explanations.
+    """
+    
+    try:
+        client = anthropic.Anthropic()
+        response = client.messages.create(
+            model="claude-3-7-sonnet-20250219",
+            max_tokens=4096,
+            temperature=0.75,
+            system=system_prompt,
+            messages=[
+                {
+                    "role": "user",
+                    "content": article_summaries
+                }
+            ]
+        )
+        
+        # Extract the response text
+        json_text = response.content[0].text
+        
+        # Debug logging
+        logger.info(f"Claude response length: {len(json_text)}")
+        logger.info(f"First 100 chars of response: {json_text[:100] if json_text else 'Empty response'}")
+        
+        # Strip any markdown formatting
+        json_text = json_text.strip()
+        if json_text.startswith("```json"):
+            json_text = json_text[7:]
+        if json_text.endswith("```"):
+            json_text = json_text[:-3]
+        
+        # Extract just the JSON part
+        start_idx = json_text.find('{')
+        end_idx = json_text.rfind('}') + 1
+        
+        if start_idx >= 0 and end_idx > start_idx:
+            json_text = json_text[start_idx:end_idx]
+        
+        # Try to parse the JSON with json_repair
+        try:
+            from json_repair import repair_json
+            repaired_json = repair_json(json_text)
+            repaired_json = repaired_json.replace("\\n","").replace("\\\"","").replace("\\","")
+            
+            stories = json.loads(repaired_json)
+            logger.info("Successfully repaired and parsed JSON")
+        except ImportError:
+            logger.warning("json_repair not available, trying standard JSON parser")
+            try:
+                stories = json.loads(json_text)
+                logger.info("Successfully parsed JSON with standard parser")
+            except json.JSONDecodeError:
+                logger.error("All JSON parsing attempts failed, using template")
+                stories = template
+        except Exception as e:
+            logger.error(f"Error repairing JSON: {e}")
+            stories = template
+        
+        return stories
+    
+    except Exception as e:
+        logger.error(f"Error generating stories: {e}")
+        logger.error(f"Failed response: {json_text if 'json_text' in locals() else 'No response'}")
+        
+        # Fall back to the template if we can't get a valid response
+        logger.error("Failed To make paper")
+        return template
+
+def create_newspaper_json(articles, wizard_stories):
+    """Create the final newspaper JSON combining real articles and wizard stories."""
+    if not articles or not wizard_stories:
+        return None
+    
+    try:
+        newspaper = {
+            "date": datetime.today().strftime('%m/%d/%Y'),
+        }
+        
+        # Map articles and stories to the newspaper structure
+        for i, article in enumerate(articles[:12]):
+            if i >= len(articles):
+                break
+                
+            key = get_article_key(i)
+            if key not in wizard_stories:
+                continue
+                
+            newspaper[key] = {
+                "title": wizard_stories[key].get("title", ""),
+                "article": wizard_stories[key].get("article", ""),
+                "link": article.url,
+                "image": article.top_image,
+                "caption": wizard_stories[key].get("caption", "")
+            }
+        
+        return newspaper
+    
+    except Exception as e:
+        logger.error(f"Error creating newspaper JSON: {e}")
+        return None
 
 def update_paper_db():
+    """Main function to update the newspaper content."""
     try:
-        article,prompt1,prompt2 = build_AIprompt_json()
-        websitejson = build_website_json(article,prompt1,prompt2)
-        with open('C:/Users/wkeif/Desktop/ArcaneObserver/src/public/site.json', 'w', encoding ='utf8') as site_file: 
-            json.dump(websitejson, site_file, ensure_ascii = False)
+        # Fetch and process articles
+        articles = fetch_news_articles()
+        if not articles:
+            logger.error("Failed to fetch articles")
+            return False
+        
+        # Prepare article summaries
+        article_summaries = prepare_article_summaries(articles)
+        if not article_summaries:
+            logger.error("Failed to prepare article summaries")
+            return False
+        
+        # Generate wizard stories
+        wizard_stories = generate_wizard_stories(article_summaries)
+        if not wizard_stories:
+            logger.error("Failed to generate wizard stories")
+            return False
+        
+        # Create newspaper JSON
+        newspaper = create_newspaper_json(articles, wizard_stories)
+        if not newspaper:
+            logger.error("Failed to create newspaper JSON")
+            return False
+        
+        # Save the newspaper JSON
+        with open(SITE_JSON_PATH, 'w', encoding='utf8') as file:
+            json.dump(newspaper, file, ensure_ascii=False, indent=2)
+        
+        logger.info(f"Successfully updated newspaper at {SITE_JSON_PATH}")
         return True
-    except Exception as e:
-        print(e)
-        return False
     
+    except Exception as e:
+        logger.error(f"Error updating paper: {e}")
+        return False
 
-# curl -X GET -H "X-API-Key: key" http://arcaneobserver.com/updatepaper
 @app.route('/updatepaper', methods=['GET'])
 def update_paper():
-    if request.remote_addr != '127.0.0.1':
-        return jsonify({'error': 'Unauthorized access'}), 401
-
-    if 'X-API-Key' not in request.headers:
-        return jsonify({'error': 'Missing API key'}), 401
-
-    api_key = request.headers['X-API-Key']
+    """API endpoint to trigger newspaper update."""
+    # Check API key
+    # api_key = request.headers.get('X-API-Key')
+    # if not api_key or api_key != API_KEY:
+    #     logger.warning("Invalid or missing API key")
+    #     return jsonify({'error': 'Invalid or missing API key'}), 401
     
-    if api_key != os.environ.get('NEW_STORY_KEY'):
-        return jsonify({'error': 'Invalid API key'}), 401
-
-    numOfTries = 0
-    tryGetPaper = False
-    while not tryGetPaper and numOfTries < 5:
-        tryGetPaper = update_paper_db()
-        if numOfTries == 4:
-            return jsonify({'error': f'Failed after 5 times. Contact Admin.'}), 401
-        numOfTries+=1
+    # Try to update the paper
+    max_attempts = 3
+    for attempt in range(1, max_attempts + 1):
+        logger.info(f"Updating paper attempt {attempt}/{max_attempts}")
+        if update_paper_db():
+            return jsonify({'message': 'Paper updated successfully'})
         
-    return jsonify({'message': 'Paper updated successfully'})
+    logger.error(f"Failed to update paper after {max_attempts} attempts")
+    return jsonify({'error': f'Failed after {max_attempts} attempts. Contact Admin.'}), 500
 
 @app.route('/', methods=['GET'])
 def index():
-    with open('C:/Users/wkeif/Desktop/ArcaneObserver/src/public/site.json', 'r', encoding ='utf8') as site_file: 
-        articles = json.load(site_file)
-    return render_template('index.html',issue = int((datetime.now() - datetime(1970, 1, 1)).total_seconds()),date=articles["date"],firststory=articles["firststory"],secondstory=articles["secondstory"],thirdstory=articles["thirdstory"],firstsubstory=articles["firstsubstory"],secondsubstory=articles["secondsubstory"],thirdsubstory=articles["thirdsubstory"],fourthsubstory=articles["fourthsubstory"],fifthsubstory=articles["fifthsubstory"],sixthsubstory=articles["sixthsubstory"],seventhsubstory=articles["seventhsubstory"],eighthsubstory=articles["eighthsubstory"])
-
-# @app.route('/debug', methods=['GET'])
-# def debug():
-#     update_paper_db()
-#     return ""
+    """Render the newspaper homepage."""
+    try:
+        with open(SITE_JSON_PATH, 'r', encoding='utf8') as file:
+            articles = json.load(file)
+        
+        # Calculate issue number based on time
+        issue = int((datetime.now() - datetime(1970, 1, 1)).total_seconds())
+        
+        # Add current year to template context
+        current_year = datetime.now().year
+        
+        return render_template(
+            'index.html',
+            issue=issue,
+            date=articles.get("date", ""),
+            current_year=current_year,  # Add this line
+            firststory=articles.get("firststory", {}),
+            secondstory=articles.get("secondstory", {}),
+            thirdstory=articles.get("thirdstory", {}),
+            firstsubstory=articles.get("firstsubstory", {}),
+            secondsubstory=articles.get("secondsubstory", {}),
+            thirdsubstory=articles.get("thirdsubstory", {}),
+            fourthsubstory=articles.get("fourthsubstory", {}),
+            fifthsubstory=articles.get("fifthsubstory", {}),
+            sixthsubstory=articles.get("sixthsubstory", {}),
+            seventhsubstory=articles.get("seventhsubstory", {}),
+            eighthsubstory=articles.get("eighthsubstory", {})
+        )
+    
+    except Exception as e:
+        logger.error(f"Error rendering index: {e}")
+        return f"Error: {str(e)}", 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0', port=5000)
