@@ -107,35 +107,44 @@ function loadSmartCropFeature() {
  * Updates the publication date with a magical format
  */
 function updatePublicationDate() {
-    const currentDate = new Date();
     const dateElement = document.getElementById('publication-date');
+    const currentText = dateElement.textContent;
     
-    // Get moon phase (simplified)
-    const moonPhases = [
-        "New Moon", "Waxing Crescent", "First Quarter", 
-        "Waxing Gibbous", "Full Moon", "Waning Gibbous", 
-        "Last Quarter", "Waning Crescent"
-    ];
-    const moonPhase = moonPhases[Math.floor((currentDate.getDate() / 30) * 8) % 8];
+    // Parse the existing mm/dd/yyyy format
+    const dateRegex = /(\d{1,2})\/(\d{1,2})\/(\d{4})/;
+    const matches = currentText.match(dateRegex);
     
-    // Format the date in a mystical way
-    const months = [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
-    ];
-    
-    const day = currentDate.getDate();
-    const month = months[currentDate.getMonth()];
-    const year = currentDate.getFullYear();
-    
-    // Add magical suffix to day number
-    let daySuffix = "th";
-    if (day === 1 || day === 21 || day === 31) daySuffix = "st";
-    if (day === 2 || day === 22) daySuffix = "nd";
-    if (day === 3 || day === 23) daySuffix = "rd";
-    
-    // Set the magical date format
-    dateElement.textContent = `${month} ${day}${daySuffix}, ${year} • ${moonPhase}`;
+    if (matches && matches.length >= 4) {
+        const month = parseInt(matches[1]);
+        const day = parseInt(matches[2]);
+        const year = parseInt(matches[3]);
+        
+        // Create a date object from the parsed values
+        const publicationDate = new Date(year, month - 1, day);
+        
+        // Get moon phase (simplified)
+        const moonPhases = [
+            "New Moon", "Waxing Crescent", "First Quarter",
+            "Waxing Gibbous", "Full Moon", "Waning Gibbous",
+            "Last Quarter", "Waning Crescent"
+        ];
+        const moonPhase = moonPhases[Math.floor((day / 30) * 8) % 8];
+        
+        // Format the date in a mystical way
+        const months = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        ];
+        
+        // Add magical suffix to day number
+        let daySuffix = "th";
+        if (day === 1 || day === 21 || day === 31) daySuffix = "st";
+        if (day === 2 || day === 22) daySuffix = "nd";
+        if (day === 3 || day === 23) daySuffix = "rd";
+        
+        // Set the magical date format
+        dateElement.textContent = `${months[month-1]} ${day}${daySuffix} • ${moonPhase}`;
+    }
 }
 
 /**

@@ -390,14 +390,10 @@ def index():
         # Calculate issue number based on time
         issue = int((datetime.now() - datetime(1970, 1, 1)).total_seconds())
         
-        # Add current year to template context
-        current_year = datetime.now().year
-        
         return render_template(
             'index.html',
             issue=issue,
             date=articles.get("date", ""),
-            current_year=current_year,  # Add this line
             firststory=articles.get("firststory", {}),
             secondstory=articles.get("secondstory", {}),
             thirdstory=articles.get("thirdstory", {}),
