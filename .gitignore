@@ -1,1 +1,12 @@
 src/.env
+.dev.vars
+wrangler.toml
+.wrangler/
+node_modules/
+dist/
+dist-worker/
+*.log
+archive-backfill-progress.json
+src/__pycache__/
+*.pyc
+wrangler.jsonc
