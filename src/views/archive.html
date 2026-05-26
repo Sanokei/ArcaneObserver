@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Past Papers | The Arcane Observer</title>
+    <link rel="icon" href="/img/icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital@0;1&family=Playfair+Display:ital,wght@0,800;1,800&family=Manrope:wght@800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .archive-shell {
+            display: block;
+        }
+        .archive-masthead {
+            margin-bottom: 1.5rem;
+        }
+        .archive-masthead img {
+            display: block;
+            width: min(100%, 820px);
+            height: auto;
+            margin: 0 auto;
+            border: 0;
+            filter: none;
+        }
+        .archive-actions {
+            display: flex;
+            justify-content: center;
+            gap: 1.25rem;
+            margin: 0.8rem 0 2rem;
+            font-style: italic;
+        }
+        .archive-actions a {
+            display: inline;
+        }
+        .archive-title {
+            font-family: var(--font-title);
+            font-size: 32px;
+            font-style: italic;
+            margin: 0 0 1rem;
+            text-align: left;
+        }
+        .archive-list {
+            display: grid;
+            gap: 1.25rem;
+        }
+        .archive-entry {
+            display: grid;
+            gap: 0.9rem;
+            border-top: 1px solid var(--black);
+            padding-top: 1rem;
+        }
+        .archive-entry__image {
+            height: 180px;
+            margin: 0;
+            object-fit: cover;
+        }
+        .archive-entry__meta {
+            font: 14px/1.2 var(--font-sans-serif);
+            text-transform: uppercase;
+            text-align: left;
+        }
+        .archive-entry h3 {
+            margin: 0.35rem 0 0.5rem;
+            text-align: left;
+        }
+        .archive-entry p {
+            margin: 0;
+        }
+        .archive-empty {
+            border-top: 1px solid var(--black);
+            padding-top: 1rem;
+            text-align: left;
+        }
+        @media (min-width: 700px) {
+            .archive-title {
+                font-size: 42px;
+            }
+            .archive-entry {
+                grid-template-columns: 220px minmax(0, 1fr);
+                align-items: start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main__wrapper">
+        <header class="archive-masthead">
+            <a href="/" aria-label="The Arcane Observer home">
+                <img src="/img/TheArcaneObserver.png" alt="The Arcane Observer"/>
+            </a>
+        </header>
+        <aside>
+            <div>
+                <div>Past papers</div>
+                <div>{{ archive_count }} archived</div>
+                <div><a href="/" style="display:inline">Current paper</a></div>
+            </div>
+        </aside>
+        <div class="archive-actions">
+            <a href="/">Current paper</a>
+        </div>
+        <main class="archive-shell">
+            <h1 class="archive-title">Past Papers</h1>
+            <div class="archive-list">
+                {{ archive_items }}
+            </div>
+        </main>
+    </div>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "name": "arcane-observer",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "check": "tsc --noEmit",
+    "types": "wrangler types",
+    "archive:backfill": "node scripts/backfill-archive.mjs",
+    "db:migrate:local": "wrangler d1 migrations apply arcane-observer-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply arcane-observer-db --remote"
+  },
+  "dependencies": {
+    "hono": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "typescript": "latest",
+    "wrangler": "latest"
+  }
+}

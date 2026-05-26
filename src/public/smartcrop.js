@@ -14,7 +14,6 @@ function initSmartCrop() {
             setTimeout(() => {
                 applySmartCrop();
                 setupResizeHandler();
-                addSmartCropToggle();
             }, 500);
         })
         .catch(error => {

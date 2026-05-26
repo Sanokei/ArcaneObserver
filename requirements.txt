@@ -1,6 +1,0 @@
-flask
-anthropic
-newspaper3k
-requests
-json_repair
-datetime
